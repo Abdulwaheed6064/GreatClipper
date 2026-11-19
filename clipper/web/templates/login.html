@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreatClipper login</title>
+<style>body{font:15px system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#f7f7f5;color:#1d1d1b}
+@media (prefers-color-scheme: dark){body{background:#151514;color:#ecebe6}}
+form{padding:24px;border:1px solid #8884;border-radius:10px;min-width:280px}input,button{font:inherit;padding:8px;width:100%;margin-top:8px;box-sizing:border-box}</style></head>
+<body><form method="post" action="/login">
+<h2>GreatClipper</h2>
+{% if flash %}<p style="color:#b3261e">{{ flash }}</p>{% endif %}
+{% if not configured %}<p>Set <code>OWNER_PASSWORD_HASH</code> first:<br><code>python -m clipper hash-password</code></p>{% endif %}
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<input type="password" name="password" placeholder="Owner password" autofocus required>
+<button>Log in</button></form></body></html>

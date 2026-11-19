@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Submissions</h1>
+{% if inflight %}<div class="banner warn">Waiting for the platform to confirm {{ inflight|length }} campaign publication(s). The live URL and deadline appear here and in Telegram once confirmed.
+ {% for p in inflight %}<br>#{{ p.id }} ({{ p.name }}): {{ p.status }}{% if p.status == 'unknown' %} — <a href="/publications">resolve</a>{% endif %}{% endfor %}</div>{% endif %}
+{% for s in subs %}
+<div class="card">
+ <b>#{{ s.id }} · {{ s.name }}</b> {% if s.dry_run %}<span class="pill warn">dry run — do not submit</span>{% endif %}
+ <span class="pill {{ 'bad' if s.status in ('manual_required','overdue') else 'ok' }}">{{ 'MANUAL STEP REQUIRED' if s.status == 'manual_required' else s.status }}</span>
+ <span class="pill">review: {{ s.review_state }}</span>
+ <p>Live URL: <a href="{{ s.live_url }}" target="_blank" rel="noopener">{{ s.live_url }}</a><br>
+ Campaign: <a href="{{ s.campaign_url }}" target="_blank" rel="noopener">{{ s.campaign_url }}</a><br>
+ Published {{ s.published_at }}{% if s.published_at_estimated %} <span class="warn">(estimated, conservative)</span>{% endif %} ·
+ target {{ s.target_at }} · deadline {{ s.deadline_at }}
+ {% if s.status == 'manual_required' %} · <span data-deadline="{{ s.deadline_at }}"></span>{% endif %}</p>
+ {% if s.status in ('manual_required','overdue') %}
+ <form method="post" action="/submissions/{{ s.id }}/submitted" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div><label>Confirmation / receipt evidence from Content Rewards</label><input name="receipt" required></div>
+  <div><label>&nbsp;</label><button>I submitted it</button></div></form>
+ <form method="post" action="/submissions/{{ s.id }}/missed" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div><label>Not submitted — what happened? (the post is left as is)</label><input name="note" required></div>
+  <div><label>&nbsp;</label><button class="danger">Record as missed</button></div></form>
+ {% else %}
+ <p class="muted">Submitted {{ s.submitted_at }} · receipt: {{ s.receipt }}{% if s.review_note %} · note: {{ s.review_note }}{% endif %}</p>
+ <form method="post" action="/submissions/{{ s.id }}/review" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div><select name="state">{% for r in ['pending','approved','rejected'] %}<option {{ 'selected' if s.review_state == r }}>{{ r }}</option>{% endfor %}</select></div>
+  <div><input name="note" placeholder="campaign review note / rejection reason"></div><div><button class="secondary">Record campaign review</button></div></form>
+ {% endif %}
+</div>
+{% else %}<div class="card muted">No submissions yet.</div>{% endfor %}
+{% endblock %}

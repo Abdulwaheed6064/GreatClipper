@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Attended campaign session</h1>
+<p class="muted">Content Rewards has no API. Publish one clip at a time, submit its live link yourself on the campaign page, and record the receipt. The next campaign clip unlocks only after that.</p>
+{% if not alerts[0] %}<div class="banner bad">Alerts unhealthy ({{ alerts[1] }}) — campaign publishing is blocked.</div>{% endif %}
+{% if open_subs %}<div class="banner bad">Open submission(s) must be recorded first: <a href="/submissions">go to submissions</a>.</div>{% endif %}
+{% for o in camps %}
+<div class="card"><h2 style="margin-top:0">{{ o.name }}</h2>
+ <p><a href="{{ o.campaign_url }}" target="_blank" rel="noopener">Open campaign page</a> · terms v{{ o.terms_version }}
+ {% if o.approved_terms_version != o.terms_version %}<span class="bad">(unconfirmed)</span>{% endif %}
+ · required text: {{ o.required_tags|join(', ') or 'none' }} · disclosure: {{ o.disclosure_required }}
+ {% if o.requires_preapproval %}· <b>pre-approval required</b>{% endif %}</p>
+ {% if ready[o.id] %}
+ <form method="post" action="/session/publish"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="opportunity_id" value="{{ o.id }}">
+  <label>Clip</label><select name="clip_id">{% for c in ready[o.id] %}<option value="{{ c.id }}">#{{ c.id }} · {{ c.title }} ({{ (c.end_s-c.start_s)|round(0) }}s, score {{ c.score_total }})</option>{% endfor %}</select>
+  <label><input type="checkbox" name="chk_terms" value="1"> I re-read the current campaign terms on the campaign page and they match v{{ o.terms_version }}</label>
+  <label><input type="checkbox" name="chk_admission" value="1"> My account is admitted/eligible for this campaign right now</label>
+  <label><input type="checkbox" name="chk_disclosure" value="1"> The required disclosures/mentions are in this clip's caption (and native label if required)</label>
+  <label><input type="checkbox" name="chk_available" value="1"> I am available for the next 30 minutes to submit the link</label>
+  <div class="row"><div><label>Remaining budget shown on the campaign page now</label><input name="budget_amount" required placeholder="e.g. 19800.00"></div>
+   <div><label>Currency</label><input name="budget_currency" value="{{ o.budget_currency or 'USD' }}" required></div></div>
+  <p><button>Ready — publish this clip now</button> <span class="muted">Readiness expires in {{ settings.operator_ready_expires_minutes }} min if publishing has not started.</span></p>
+ </form>
+ {% else %}<p class="muted">No ready clips for this campaign.</p>{% endif %}
+</div>
+{% else %}<div class="card muted">No active campaign opportunities.</div>{% endfor %}
+{% endblock %}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>{% block title %}GreatClipper{% endblock %}</title>
+<style>
+:root { --bg:#f7f7f5; --fg:#1d1d1b; --muted:#6b6b66; --card:#fff; --line:#e3e2dd; --accent:#2457d6;
+        --ok:#1f7a3f; --warn:#a15c00; --bad:#b3261e; --badbg:#fdecea; --warnbg:#fff4e0; --okbg:#e8f5ec; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#151514; --fg:#ecebe6; --muted:#a19f97; --card:#1f1f1d; --line:#34332f; --accent:#7ea2ff;
+          --ok:#6fcf8f; --warn:#f0b35a; --bad:#ff8a80; --badbg:#3a1f1d; --warnbg:#3a2c14; --okbg:#173022; }
+}
+* { box-sizing: border-box; }
+body { margin:0; font:15px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background:var(--bg); color:var(--fg); }
+header { display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--card); }
+header b { margin-right:8px; }
+header a { color:var(--fg); text-decoration:none; padding:4px 2px; }
+header a:hover { color:var(--accent); }
+main { max-width:1150px; margin:0 auto; padding:16px; }
+h1 { font-size:22px; margin:6px 0 14px; } h2 { font-size:17px; margin:22px 0 8px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px; overflow-x:auto; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--muted); font-weight:600; }
+.muted { color:var(--muted); } .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+.pill { display:inline-block; padding:1px 8px; border-radius:99px; font-size:12px; border:1px solid var(--line); }
+.banner { padding:12px 14px; border-radius:8px; margin-bottom:12px; font-weight:600; }
+.banner.bad { background:var(--badbg); color:var(--bad); } .banner.warn { background:var(--warnbg); color:var(--warn); }
+.banner.ok { background:var(--okbg); color:var(--ok); }
+input, select, textarea { font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:6px 8px; max-width:100%; }
+textarea { width:100%; min-height:80px; }
+label { display:block; margin:8px 0 2px; font-size:13px; color:var(--muted); }
+button { font:inherit; padding:6px 12px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+button.secondary { background:transparent; color:var(--accent); }
+button.danger { background:var(--bad); border-color:var(--bad); }
+form.inline { display:inline; }
+.row { display:flex; flex-wrap:wrap; gap:8px 16px; } .row > div { flex:1 1 220px; }
+video { max-width:220px; border-radius:6px; background:#000; }
+code { font-size:13px; }
+.countdown { font-variant-numeric:tabular-nums; font-weight:700; }
+</style>
+</head>
+<body>
+<header>
+  <b>GreatClipper</b>
+  <a href="/">Dashboard</a><a href="/opportunities">Opportunities</a><a href="/clips">Review</a>
+  <a href="/session">Campaign session</a><a href="/submissions">Submissions</a><a href="/publications">Publications</a>
+  <a href="/ledger">Ledger</a><a href="/capabilities">Capabilities</a><a href="/jobs">Jobs</a>
+  <span class="pill {{ 'warn' if settings.mode == 'dry_run' else 'ok' }}">{{ settings.mode }}</span>
+  <form class="inline" method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Log out</button></form>
+</header>
+<main>
+{% if flash %}<div class="banner warn">{{ flash }}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+<script>
+// live countdowns for submission deadlines
+function tick(){ document.querySelectorAll('[data-deadline]').forEach(function(el){
+  var s = Math.round((new Date(el.dataset.deadline) - new Date())/1000);
+  el.textContent = s <= 0 ? 'DEADLINE PASSED' : Math.floor(s/60) + ':' + String(s%60).padStart(2,'0') + ' left';
+  el.className = 'countdown ' + (s <= 300 ? 'bad' : s <= 900 ? 'warn' : 'ok'); }); }
+tick(); setInterval(tick, 1000);
+</script>
+</body>
+</html>

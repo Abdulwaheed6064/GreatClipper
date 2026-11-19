@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ op.name }} <span class="pill">{{ op.revenue_route }}</span> <span class="pill">{{ op.status }}</span>
+ {% if live %}<span class="pill ok">LIVE</span>{% elif live_listed %}<span class="pill warn">live-enabled (config still dry_run)</span>{% endif %}</h1>
+
+<div class="card">
+ Terms version <b>v{{ op.terms_version }}</b> —
+ {% if op.approved_terms_version == op.terms_version %}<span class="ok">confirmed {{ op.approved_at|ago }}</span>{% else %}<span class="bad">NOT confirmed: nothing is processed or published for this opportunity until you confirm.</span>{% endif %}
+ {% if problems %}<ul class="bad">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+ <div class="row" style="margin-top:8px">
+  <form method="post" action="/opportunities/{{ op.id }}/approve"><input type="hidden" name="csrf" value="{{ csrf }}">
+   <button {{ 'disabled' if problems }}>I verified these terms (v{{ op.terms_version }})</button></form>
+  <form method="post" action="/opportunities/{{ op.id }}/status"><input type="hidden" name="csrf" value="{{ csrf }}">
+   <select name="status">{% for s in ['draft','active','paused','archived'] %}<option {{ 'selected' if op.status == s }}>{{ s }}</option>{% endfor %}</select>
+   <button class="secondary">Set status</button></form>
+  <form method="post" action="/opportunities/{{ op.id }}/draft-terms"><input type="hidden" name="csrf" value="{{ csrf }}">
+   <button class="secondary">Draft fields from terms with Claude</button></form>
+ </div>
+</div>
+
+{% if draft %}<div class="card"><b>Claude's proposal (verify every value against the terms before copying it)</b>
+<pre style="white-space:pre-wrap">{{ draft.proposed|tojson(indent=2) }}</pre>
+<b>Evidence</b><ul>{% for e in draft.evidence %}<li><b>{{ e.field }}</b>: “{{ e.excerpt }}”</li>{% endfor %}</ul>
+<b>Unresolved questions</b><ul>{% for q in draft.unresolved_questions %}<li>{{ q }}</li>{% endfor %}</ul></div>{% endif %}
+
+<div class="card"><b>Live publishing</b> — a separate owner action per opportunity.
+ {% if op.revenue_route == 'campaign' %}<p class="muted">Campaign posts still need an attended session and manual Content Rewards submission.</p>{% endif %}
+ {% if live_listed %}
+ <form method="post" action="/opportunities/{{ op.id }}/live"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="enable" value="0"><button class="danger">Disable live publishing</button></form>
+ {% else %}
+ <form method="post" action="/opportunities/{{ op.id }}/live"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="enable" value="1">
+  <label>Type <code>{{ op.id }}</code> to enable real posting to {{ op.publisher }} account {{ op.account_ref }}</label>
+  <input name="confirm" required> <button>Enable live publishing</button></form>
+ {% endif %}
+</div>
+
+{% if op.revenue_route == 'campaign' %}
+<div class="card"><b>Remaining campaign budget</b> (observation, not a reservation):
+ {{ op.budget_remaining_minor|money(op.budget_currency or '') if op.budget_remaining_minor is not none else 'unknown' }}
+ <span class="muted">observed {{ op.budget_observed_at|ago }}</span>
+ <form method="post" action="/opportunities/{{ op.id }}/budget" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div><input name="amount" placeholder="19800.00" required></div><div><input name="currency" value="{{ op.budget_currency or 'USD' }}" required></div><div><button class="secondary">Record observation</button></div></form>
+</div>{% endif %}
+
+<h2>Sources</h2>
+<div class="card"><table><tr><th>#</th><th>Provider id</th><th>Title</th><th>Mode</th><th>Stage</th><th>Duration</th><th>Cost</th><th></th></tr>
+{% for s in sources %}<tr><td>{{ s.id }}</td><td>{{ s.provider_id }}</td><td>{{ s.title }}</td><td>{{ 'semi-manual' if s.ingest_mode == 'manual' else 'feed' }}</td>
+<td>{{ s.stage }}{% if s.hold_reason %}<br><span class="warn">{{ s.hold_reason }}</span>{% endif %}</td>
+<td>{{ ((s.duration_s or 0)/60)|round(1) }} min</td><td>{{ s.processing_cost_minor|money('USD') }}</td>
+<td>{% if s.stage in ('held',) %}<form class="inline" method="post" action="/sources/{{ s.id }}/retry"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Retry</button></form>
+<form class="inline" method="post" action="/sources/{{ s.id }}/reject"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Reject</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="muted">none yet</td></tr>{% endfor %}</table>
+<form method="post" action="/opportunities/{{ op.id }}/sources" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+ <div><label>Recording id</label><input name="provider_id" required></div>
+ <div><label>Authorized HTTPS download URL</label><input name="url" required></div>
+ <div><label>Title</label><input name="title"></div>
+ <div><label>Rights reference</label><input name="rights_ref" required></div>
+ <div><label>&nbsp;</label><button class="secondary">Add authorized link</button></div></form>
+<p class="muted">The download host must be in <code>source_host_allowlist</code> in config.yaml.</p></div>
+
+<h2>Configuration</h2>
+<form class="card" method="post" action="/opportunities/{{ op.id }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+{% include "_opp_form.html" %}
+<p><button>Save</button> <span class="muted">Changing terms-bearing fields creates a new terms version and requires re-confirmation.</span></p></form>
+
+<h2>Terms history</h2>
+<div class="card">{% for h in history %}<span class="pill">v{{ h.terms_version }} · {{ h.created_at }}</span> {% endfor %}</div>
+{% endblock %}

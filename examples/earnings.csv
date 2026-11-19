@@ -1,0 +1,8 @@
+external_id,effective_date,currency,amount,event_type,opportunity_id,clip_id,source_evidence,note
+cr-2026-11-25-001,2026-11-25,USD,12.50,approved,smj-reach,,Content Rewards dashboard screenshot 2026-11-25,
+cr-2026-12-05-001,2026-12-05,USD,12.50,settled,smj-reach,,Content Rewards wallet 2026-12-05,
+cr-2026-12-05-001-fee,2026-12-05,USD,1.25,fee,smj-reach,,Content Rewards wallet 2026-12-05,10% CPM creator fee
+whop-po-8812,2026-12-08,USD,11.25,withdrawal,,,Whop payout 8812,moves money; not revenue
+vps-2026-12,2026-12-01,USD,7.20,fixed_commitment,,,Hetzner invoice 2026-12,
+inv-007,2026-12-01,CAD,400.00,client_fee_invoiced,client-acme,,Invoice 007,
+inv-007-paid,2026-12-14,CAD,400.00,settled,client-acme,,Bank deposit 2026-12-14,

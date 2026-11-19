@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ledger &amp; profitability</h1>
+<form method="get" class="row"><div><label>Period (YYYY-MM, blank = all time)</label><input name="period" value="{{ period }}"></div><div><label>&nbsp;</label><button class="secondary">Show</button></div>
+<div><label>&nbsp;</label><a href="/ledger/export.csv">Export ledger CSV</a></div></form>
+
+<h2>Profitability — {{ prof.period }}</h2>
+<div class="card"><table><tr><th>Opportunity</th><th>Cur.</th><th>Est. gross</th><th>Pending</th><th>Approved</th><th>Settled</th><th>Fees</th><th>Costs</th><th>Cash contribution</th><th>Operator time</th><th>After labor (@{{ prof.hourly_rate_usd }}/h)</th><th>Per operator hour</th><th>Withdrawn (not revenue)</th></tr>
+{% for r in prof.rows %}<tr><td>{{ r.opportunity_id }}</td><td>{{ r.currency }}</td><td>{{ r.estimated_gross|money }}</td><td>{{ r.pending|money }}</td><td>{{ r.approved|money }}</td>
+<td>{{ r.settled|money }}</td><td>{{ r.fees|money }}</td><td>{{ r.costs|money }}</td><td><b class="{{ 'ok' if r.cash_contribution > 0 else 'bad' }}">{{ r.cash_contribution|money }}</b></td>
+<td>{{ r.operator_minutes }} min</td><td>{{ r.contribution_after_labor|money if r.contribution_after_labor is not none else 'n/a (non-USD)' }}</td>
+<td>{{ r.per_operator_hour|money if r.per_operator_hour is not none else '—' }}</td><td>{{ r.withdrawn|money }}</td></tr>
+{% else %}<tr><td colspan="13" class="muted">No entries yet.</td></tr>{% endfor %}</table>
+<p class="muted">Currencies are never combined. "unknown" means no data was recorded — not zero. Settled = settled + adjustments.</p></div>
+
+<div class="grid">
+<form class="card" method="post" action="/ledger/entry"><input type="hidden" name="csrf" value="{{ csrf }}"><b>Add entry</b>
+ <label>Type</label><select name="event_type">{% for t in event_types %}<option>{{ t }}</option>{% endfor %}</select>
+ <label>Amount (positive; corrections use 'adjustment')</label><input name="amount" required>
+ <label>Currency</label><input name="currency" value="USD" required>
+ <label>Effective date</label><input name="effective_date" type="date" required>
+ <label>Opportunity</label><select name="opportunity_id"><option value="">(shared)</option>{% for o in ops %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select>
+ <label>External id (transaction / payout id)</label><input name="external_id">
+ <label>Source evidence (where the number came from)</label><input name="source_evidence" required>
+ <label>Note</label><input name="note"><p><button>Record</button></p></form>
+
+<form class="card" method="post" action="/ledger/import" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ csrf }}"><b>CSV import (idempotent)</b>
+ <label>Kind</label><select name="kind"><option value="ledger">ledger (examples/earnings.csv)</option><option value="metrics">views (examples/metrics.csv)</option></select>
+ <label>File</label><input type="file" name="file" accept=".csv" required><p><button>Import</button></p>
+ {% if import_result %}<p>Inserted {{ import_result.inserted }}, duplicates {{ import_result.duplicates }}</p>{% for e in import_result.errors %}<p class="bad">{{ e }}</p>{% endfor %}{% endif %}</form>
+
+<form class="card" method="post" action="/ledger/time"><input type="hidden" name="csrf" value="{{ csrf }}"><b>Log operator time</b>
+ <label>Minutes</label><input name="minutes" type="number" min="1" required>
+ <label>Activity</label><input name="activity" placeholder="attended session, review, sales…" required>
+ <label>Date</label><input name="work_date" type="date" required>
+ <label>Opportunity</label><select name="opportunity_id"><option value="">(shared)</option>{% for o in ops %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select>
+ <p><button>Log</button></p></form>
+</div>
+
+<h2>Spend {{ budget.period }} (USD)</h2>
+<div class="card">Ceiling {{ budget.ceiling_minor|money }} · fixed commitments {{ budget.fixed_minor|money }} · variable {{ budget.variable_minor|money }} · open reservations {{ budget.reserved_minor|money }} · Claude {{ budget.model_minor|money }} of {{ budget.model_allowance_minor|money }}
+<p class="muted">Add your VPS bill as a monthly <code>fixed_commitment</code> entry so the ceiling accounts for it. This is an app-side counter, not a billing guarantee — set provider spend limits too.</p></div>
+
+<h2>Recent entries</h2>
+<div class="card"><table><tr><th>Date</th><th>Type</th><th>Amount</th><th>Opportunity</th><th>External id</th><th>Evidence</th></tr>
+{% for e in entries %}<tr><td>{{ e.effective_date }}</td><td>{{ e.event_type }}</td><td>{{ e.amount_minor|money(e.currency) }}</td><td>{{ e.opportunity_id or '' }}</td><td>{{ e.external_id or '' }}</td><td>{{ e.source_evidence }}</td></tr>{% endfor %}</table></div>
+
+<h2>Views (as imported)</h2>
+<div class="card"><table><tr><th>As of</th><th>URL</th><th>Platform views</th><th>Qualified views</th><th>Source</th></tr>
+{% for m in metrics %}<tr><td>{{ m.as_of }}</td><td>{{ m.live_url }}</td><td>{{ m.platform_views if m.platform_views is not none else 'unknown' }}</td><td>{{ m.qualified_views if m.qualified_views is not none else 'unknown' }}</td><td>{{ m.source }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

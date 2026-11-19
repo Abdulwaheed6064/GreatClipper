@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+{% if restored %}<div class="banner warn">Restored from {{ restored }}. The system is paused: check publications and submissions, then resume.</div>{% endif %}
+{% for s in subs %}
+<div class="banner bad">MANUAL STEP REQUIRED — submit <a href="{{ s.live_url }}" target="_blank" rel="noopener">{{ s.live_url }}</a>
+ for {{ s.name }} on <a href="{{ s.campaign_url }}" target="_blank" rel="noopener">the campaign page</a>:
+ <span data-deadline="{{ s.deadline_at }}"></span> · <a href="/submissions">record receipt</a></div>
+{% endfor %}
+{% if not alerts[0] %}<div class="banner bad">Alerts unhealthy: {{ alerts[1] }}. Campaign publishing is blocked.</div>{% endif %}
+{% if paused %}<div class="banner warn">System is PAUSED — no new publications.</div>{% endif %}
+
+<div class="grid">
+  <div class="card"><b>Mode</b><br>{{ settings.mode }} {% if settings.mode == 'dry_run' %}<span class="muted">(publishing is simulated)</span>{% endif %}<br>
+    Live opportunities: {{ live_ops|join(', ') or 'none' }}<br>
+    <form method="post" action="/pause" style="margin-top:8px"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="paused" value="{{ '0' if paused else '1' }}">
+      <button class="{{ 'secondary' if paused else 'danger' }}">{{ 'Resume' if paused else 'Pause everything' }}</button></form></div>
+  <div class="card"><b>Clips</b><br>
+    Ready: {{ counts.get('ready', 0) }} · Awaiting review: <a href="/clips?stage=checked">{{ review }}</a><br>
+    Held: <a href="/clips?stage=held">{{ counts.get('held', 0) }}</a> · Published: {{ counts.get('published', 0) }}<br>
+    In progress: {{ counts.get('selected', 0) + counts.get('rendered', 0) }}</div>
+  <div class="card"><b>Spend {{ budget.period }}</b><br>
+    {{ (budget.used_minor/100)|round(2) }} / {{ (budget.ceiling_minor/100)|round(2) }} USD ({{ (budget.fraction*100)|round(0) }}%)<br>
+    <span class="muted">fixed {{ budget.fixed_minor|money('USD') }} · variable {{ budget.variable_minor|money('USD') }} · reserved {{ budget.reserved_minor|money('USD') }}</span><br>
+    Claude: {{ budget.model_minor|money('USD') }} of {{ budget.model_allowance_minor|money('USD') }}</div>
+  <div class="card"><b>Alerts</b><br><span class="{{ 'ok' if alerts[0] else 'bad' }}">{{ 'healthy' if alerts[0] else 'unhealthy' }}</span>
+    <form method="post" action="/alerts/test" style="margin-top:8px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Send test alert</button></form></div>
+</div>
+
+<h2>Opportunities</h2>
+<div class="card"><table><tr><th>Name</th><th>Route</th><th>Status</th><th>Terms</th><th>Publisher</th><th>Source feed</th></tr>
+{% for o in ops %}<tr><td><a href="/opportunities/{{ o.id }}">{{ o.name }}</a></td><td>{{ o.revenue_route }}</td><td>{{ o.status }}</td>
+<td>{% if o.approved_terms_version == o.terms_version %}<span class="ok">v{{ o.terms_version }} confirmed</span>{% else %}<span class="bad">v{{ o.terms_version }} unconfirmed</span>{% endif %}</td>
+<td>{{ o.publisher }}{% if o.id in live_ops %} <span class="pill ok">live</span>{% endif %}</td>
+<td>{% if o.feed_url %}{% set f = feeds.get(o.id) %}{{ f.at|ago if f else 'never polled' }}{% else %}<span class="muted">manual links</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="6" class="muted">No opportunities yet. <a href="/opportunities">Add one</a>.</td></tr>{% endfor %}</table></div>
+
+{% if inflight %}<h2>Publications in flight</h2><div class="card"><table><tr><th>#</th><th>Clip</th><th>Publisher</th><th>Status</th><th>Since</th></tr>
+{% for p in inflight %}<tr><td>{{ p.id }}</td><td>{{ p.clip_id }}</td><td>{{ p.publisher }}</td><td>{{ p.status }}</td><td>{{ p.updated_at|ago }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if problems %}<h2>Publication problems (7 days)</h2><div class="card"><table><tr><th>#</th><th>Status</th><th>Error</th><th></th></tr>
+{% for p in problems %}<tr><td>{{ p.id }}</td><td class="bad">{{ p.status }}</td><td>{{ p.last_error }}</td><td><a href="/publications">resolve</a></td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if held_sources %}<h2>Held sources</h2><div class="card"><table>{% for s in held_sources %}<tr><td>#{{ s.id }}</td><td>{{ s.title }}</td><td class="warn">{{ s.hold_reason }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+{% if dead_jobs %}<h2>Failed jobs (3 days)</h2><div class="card"><table>{% for j in dead_jobs %}<tr><td>#{{ j.id }}</td><td>{{ j.type }}</td><td>{{ j.status }}</td><td class="bad">{{ j.last_error }}</td></tr>{% endfor %}</table></div>{% endif %}
+
+<h2>Capabilities</h2>
+<div class="card">{% for k, v in caps.items() %}<span class="pill {{ 'ok' if v == 'verified' else ('bad' if v in ('failed','not_supported') else 'warn') }}">{{ k }}: {{ v }}</span> {% endfor %}
+<p class="muted">Unverified capabilities block live publishing that depends on them. <a href="/capabilities">Record Day-1 test results</a>.</p></div>
+
+<h2>Recent alerts</h2>
+<div class="card"><table>{% for a in recent_alerts %}<tr><td>{{ a.created_at|ago }}</td><td>{{ a.kind }}</td><td>{{ a.message }}</td><td class="{{ 'ok' if a.delivered else 'bad' }}">{{ 'delivered' if a.delivered else 'FAILED: ' ~ a.error }}</td></tr>
+{% else %}<tr><td class="muted">none</td></tr>{% endfor %}</table></div>
+{% endblock %}

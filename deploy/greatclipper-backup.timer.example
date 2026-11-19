@@ -1,0 +1,3 @@
+# Optional: the scheduler already writes a daily encrypted backup into data/backups.
+# If you prefer host cron for the off-host copy, for example:
+#   15 3 * * *  rclone copy /opt/greatclipper/data/backups b2:my-bucket/greatclipper --max-age 48h

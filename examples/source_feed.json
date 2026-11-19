@@ -1,0 +1,10 @@
+{
+  "videos": [
+    {
+      "id": "recording-001",
+      "download_url": "https://creator-owned.example/media/recording-001.mp4",
+      "title": "Approved recording",
+      "rights_ref": "agreement-001"
+    }
+  ]
+}

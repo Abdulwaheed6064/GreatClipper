@@ -1,0 +1,70 @@
+{% set p = op.payment if op else {} %}
+<div class="row">
+ {% if not op %}<div><label>Id (lowercase, e.g. smj-reach)</label><input name="id" required pattern="[a-z0-9][a-z0-9_-]{1,62}"></div>{% endif %}
+ <div><label>Name</label><input name="name" value="{{ op.name if op else '' }}" required></div>
+ <div><label>Revenue route</label><select name="revenue_route">{% for r in ['campaign','client','owned'] %}<option {{ 'selected' if op and op.revenue_route == r }}>{{ r }}</option>{% endfor %}</select></div>
+ <div><label>Destination platform</label><input name="platform" value="{{ op.platform or '' if op else 'instagram' }}"></div>
+</div>
+<div class="row">
+ <div><label>Publisher</label><select name="publisher">{% for r in ['buffer','instagram','manual'] %}<option {{ 'selected' if op and op.publisher == r }}>{{ r }}</option>{% endfor %}</select></div>
+ <div><label>Account ref (Buffer channel id / Instagram user id)</label><input name="account_ref" value="{{ op.account_ref or '' if op else '' }}"></div>
+ <div><label>Campaign URL</label><input name="campaign_url" value="{{ op.campaign_url or '' if op else '' }}"></div>
+ <div><label>Owner/client contact</label><input name="owner_contact" value="{{ op.owner_contact or '' if op else '' }}"></div>
+</div>
+<div class="row">
+ <div><label>Source page (discovery only, not a download right)</label><input name="source_url" value="{{ op.source_url or '' if op else '' }}"></div>
+ <div><label>Creator-controlled JSON feed URL (optional)</label><input name="feed_url" value="{{ op.feed_url or '' if op else '' }}"></div>
+</div>
+<label>Permission evidence (agreement id, campaign resource link, email reference…)</label>
+<textarea name="permission_evidence">{{ op.permission_evidence or '' if op else '' }}</textarea>
+<label>Terms text — paste the full current brief/contract (snapshot is versioned)</label>
+<textarea name="terms_text" style="min-height:140px">{{ op.terms_text or '' if op else '' }}</textarea>
+<div class="row">
+ <div><label>Terms/rights expire at (ISO, UTC)</label><input name="expires_at" value="{{ op.expires_at or '' if op else '' }}" placeholder="2026-12-31T23:59:00+00:00"></div>
+ <div><label>Allowed from</label><input name="allowed_from" value="{{ op.allowed_from or '' if op else '' }}"></div>
+ <div><label>Allowed until</label><input name="allowed_until" value="{{ op.allowed_until or '' if op else '' }}"></div>
+</div>
+<div class="row">
+ <div><label>Required literal text in caption (comma separated, e.g. @Coinbase, #ad)</label><input name="required_tags" value="{{ (op.required_tags|join(', ')) if op else '' }}"></div>
+ <div><label>Disclosure</label><select name="disclosure_required">{% for r in ['none','caption','native_paid_partnership'] %}<option {{ 'selected' if op and op.disclosure_required == r }}>{{ r }}</option>{% endfor %}</select></div>
+ <div><label>Sponsor ids (native label)</label><input name="sponsor_ids" value="{{ (op.sponsor_ids|join(', ')) if op else '' }}"></div>
+</div>
+<div class="row">
+ <div><label>Min duration (s)</label><input name="min_duration_s" value="{{ op.min_duration_s if op else 15 }}"></div>
+ <div><label>Max duration (s)</label><input name="max_duration_s" value="{{ op.max_duration_s if op else 60 }}"></div>
+ <div><label>Permitted audio</label><input name="permitted_audio" value="{{ op.permitted_audio if op else 'original_only' }}"></div>
+ <div><label><input type="checkbox" name="requires_preapproval" {{ 'checked' if op and op.requires_preapproval }}> Draft pre-approval required</label></div>
+</div>
+<label>Prohibited material</label><textarea name="prohibited">{{ op.prohibited or '' if op else '' }}</textarea>
+<label>Reuse / exclusivity constraints</label><textarea name="reuse_constraints">{{ op.reuse_constraints or '' if op else '' }}</textarea>
+<label>Editorial notes for clip selection (theme, what to look for)</label><textarea name="editorial_notes">{{ op.editorial_notes or '' if op else '' }}</textarea>
+<div class="row">
+ <div><label>Layout JSON (see README)</label><input name="layout" value='{{ (op.layout|tojson) if op else '{"template":"blur_pad"}' }}'></div>
+ <div><label>Caption template ({caption}, {tags})</label><textarea name="caption_template" style="min-height:60px">{{ op.caption_template if op else '{caption}\n\n{tags}' }}</textarea></div>
+ <div><label>Posting times, local (client/owned only, e.g. 10:30, 18:15)</label><input name="posting_times" value="{{ (op.posting_times|join(', ')) if op else '' }}"></div>
+</div>
+<h2>Payment terms (leave unknown blank — never copy from another campaign)</h2>
+<div class="row">
+ <div><label>Model</label><select name="pay_model"><option value="">(unknown)</option>{% for m in ['cpm','per_post','retainer','pool','client_fee','unmonetized'] %}<option {{ 'selected' if p.get('model') == m }}>{{ m }}</option>{% endfor %}</select></div>
+ <div><label>Currency</label><input name="pay_currency" value="{{ p.get('currency','') }}" placeholder="USD"></div>
+ <div><label>Rate (per 1,000 for CPM; per post/cycle otherwise)</label><input name="pay_rate" value="{{ p.get('rate','') }}"></div>
+ <div><label>Qualifying-view definition</label><input name="pay_qualifying_view_definition" value="{{ p.get('qualifying_view_definition','') }}"></div>
+</div>
+<div class="row">
+ <div><label>Minimum payable (amount)</label><input name="pay_min_payable" value="{{ p.get('min_payable','') }}"></div>
+ <div><label>Minimum semantics</label><select name="pay_min_payable_semantics"><option value="">(unknown)</option>{% for m in ['per_clip_earnings_minimum','per_clip_views_minimum','account_payout_threshold','none'] %}<option {{ 'selected' if p.get('min_payable_semantics') == m }}>{{ m }}</option>{% endfor %}</select></div>
+ <div><label>Minimum views</label><input name="pay_min_views" value="{{ p.get('min_views','') }}"></div>
+ <div><label>Max per clip</label><input name="pay_max_per_clip" value="{{ p.get('max_per_clip','') }}"></div>
+</div>
+<div class="row">
+ <div><label>Max per account</label><input name="pay_max_per_account" value="{{ p.get('max_per_account','') }}"></div>
+ <div><label>Max per campaign</label><input name="pay_max_per_campaign" value="{{ p.get('max_per_campaign','') }}"></div>
+ <div><label>Creator fee rate (e.g. 0.10)</label><input name="pay_fee_rate" value="{{ p.get('fee_rate','') }}"></div>
+ <div><label><input type="checkbox" name="pay_fee_exempt" {{ 'checked' if p.get('fee_exempt') }}> Fee exempt</label><input name="pay_fee_exempt_evidence" placeholder="exemption evidence" value="{{ p.get('fee_exempt_evidence','') }}"></div>
+</div>
+<div class="row">
+ <div><label>Submission deadline (minutes after publishing)</label><input name="pay_submission_deadline_minutes" value="{{ p.get('submission_deadline_minutes','30') }}"></div>
+ <div><label>Earning window rules</label><input name="pay_earning_window" value="{{ p.get('earning_window','') }}"></div>
+ <div><label>Payout schedule</label><input name="pay_payout_schedule" value="{{ p.get('payout_schedule','') }}"></div>
+ <div><label>Evidence source for these numbers</label><input name="pay_evidence_source" value="{{ p.get('evidence_source','') }}"></div>
+</div>

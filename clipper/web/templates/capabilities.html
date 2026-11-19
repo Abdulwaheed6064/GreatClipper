@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Capability checklist (Day-1 go/no-go)</h1>
+<p class="muted">Record what you observed on the real account. Live publishing that depends on an unverified capability stays blocked. Run one authorized live test per enabled destination; do not manufacture posts to test errors.</p>
+<form class="card" method="post" action="/capabilities/buffer-schema"><input type="hidden" name="csrf" value="{{ csrf }}">
+ <b>Buffer schema check</b> — introspects the live API to confirm the fields the adapter uses (1 request). <button class="secondary">Run</button>
+ {% if schema %}{% if schema.ok %}<p class="ok">All expected fields exist.</p>{% elif schema.error %}<p class="bad">{{ schema.error }}</p>{% else %}<p class="bad">Missing: {{ schema.missing }}</p>{% endif %}{% endif %}</form>
+{% for key, desc in keys %}{% set r = recs.get(key) %}
+<form class="card" method="post" action="/capabilities"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ key }}">
+ <b>{{ key }}</b> <span class="pill {{ 'ok' if r and r.status == 'verified' else ('bad' if r and r.status in ('failed','not_supported') else 'warn') }}">{{ r.status if r else 'unverified' }}</span><br>
+ <span class="muted">{{ desc }}</span>{% if r and r.evidence %}<br>Evidence: {{ r.evidence }}{% endif %}
+ <div class="row"><div><select name="status">{% for s in ['verified','failed','not_supported','unverified'] %}<option>{{ s }}</option>{% endfor %}</select></div>
+ <div><input name="evidence" placeholder="live post URL + what you saw"></div><div><button class="secondary">Record</button></div></div></form>
+{% endfor %}
+{% endblock %}

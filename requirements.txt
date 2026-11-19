@@ -1,0 +1,13 @@
+# Pinned runtime dependencies (Python 3.11+)
+anthropic==2.10.0
+cryptography==50.0.2
+fastapi==0.165.0
+faster-whisper==1.2.1
+httpx==0.28.1
+itsdangerous==2.2.0
+Jinja2==3.1.6
+pydantic==2.14.3
+python-multipart==0.0.34
+PyYAML==6.0.3
+starlette==1.10.0
+uvicorn==0.54.0

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Opportunities</h1>
+<div class="card"><table><tr><th>Id</th><th>Name</th><th>Route</th><th>Status</th><th>Terms</th><th>Publisher</th></tr>
+{% for o in ops %}<tr><td><a href="/opportunities/{{ o.id }}">{{ o.id }}</a></td><td>{{ o.name }}</td><td>{{ o.revenue_route }}</td><td>{{ o.status }}</td>
+<td>v{{ o.terms_version }} {% if o.approved_terms_version == o.terms_version %}<span class="ok">confirmed</span>{% else %}<span class="bad">unconfirmed</span>{% endif %}</td>
+<td>{{ o.publisher }} {% if o.id in live_ops %}<span class="pill ok">live</span>{% endif %}</td></tr>{% endfor %}</table></div>
+<h2>New opportunity</h2>
+<form class="card" method="post" action="/opportunities">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+{% set op = None %}{% include "_opp_form.html" %}
+<p><button>Create draft</button></p></form>
+{% endblock %}

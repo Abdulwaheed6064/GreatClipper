@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Publications</h1>
+{% if usage %}<div class="card"><b>Buffer request budget (30 days)</b>{% for ch, u in usage.items() %}<br>{{ ch }}: {{ u[0] }} used of {{ u[1] }}{% endfor %}</div>{% endif %}
+<div class="card"><table><tr><th>#</th><th>Opportunity</th><th>Clip</th><th>Publisher</th><th>Status</th><th>Live URL / error</th><th></th></tr>
+{% for p in pubs %}<tr><td>{{ p.id }}{% if p.dry_run %} <span class="pill warn">dry</span>{% endif %}</td><td>{{ p.name }}</td><td>{{ p.clip_id }}</td><td>{{ p.publisher }}</td>
+<td class="{{ 'ok' if p.status == 'sent' else ('bad' if p.status in ('unknown','failed') else '') }}">{{ p.status }}</td>
+<td>{% if p.live_url %}<a href="{{ p.live_url }}" target="_blank" rel="noopener">{{ p.live_url }}</a> <span class="muted">{{ p.sent_at }}{% if p.sent_at_estimated %} (est.){% endif %}</span>{% else %}<span class="muted">{{ p.last_error or '' }}</span>{% endif %}</td>
+<td>{% if p.status in ('unknown','accepted') %}
+ <form method="post" action="/publications/{{ p.id }}/recheck" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Re-check</button></form>
+ <details><summary>Resolve manually</summary>
+ <form method="post" action="/publications/{{ p.id }}/resolve"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Check the real account first.</label>
+  <input name="live_url" placeholder="https://… (if it is live)"><input name="sent_at" placeholder="publish time ISO (optional)">
+  <button name="published" value="1">It is live</button> <button name="published" value="0" class="danger">It was NOT published</button></form></details>
+{% endif %}</td></tr>{% else %}<tr><td colspan="7" class="muted">none</td></tr>{% endfor %}</table></div>
+<h2>Scheduled slots (client / owned)</h2>
+<div class="card"><table>{% for s in slots %}<tr><td>{{ s.slot_key }}</td><td>{{ s.outcome }}</td><td>{{ s.publication_id or '' }}</td></tr>{% else %}<tr><td class="muted">none</td></tr>{% endfor %}</table></div>
+{% endblock %}

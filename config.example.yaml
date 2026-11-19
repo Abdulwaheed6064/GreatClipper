@@ -1,0 +1,65 @@
+# GreatClipper operating settings (non-secret). Copy to config.yaml.
+# Start in dry_run. Switching to live is a deliberate edit here PLUS a per-opportunity
+# "Enable live publishing" action on the dashboard.
+mode: dry_run
+timezone: America/Toronto
+
+max_posts_per_day_total: 1          # raise to 2, then 3, only when quality/deadlines/net contribution support it
+max_source_minutes_per_day: 30
+max_source_bytes: 4294967296        # 4 GiB per source file
+source_poll_minutes: 30
+heavy_worker_concurrency: 1
+max_candidates_per_source: 6
+calibration_review_count: 10        # first N clips per opportunity+template need owner review
+publish_slot_grace_minutes: 30      # missed slots are skipped, never caught up
+
+monthly_operating_ceiling_usd: 40
+monthly_model_allowance_usd: 10
+operator_hourly_rate_usd: 15        # used only for "contribution after labor"
+
+campaign_submission_mode: manual
+campaign_publish_requires_operator_ready: true
+operator_ready_expires_minutes: 5
+submission_target_minutes: 10
+submission_reminder_minutes: [5, 15]
+submission_escalate_minutes: 20
+provider_initial_status_checks_max: 6
+provider_status_check_offsets_s: [15, 45, 90, 180, 300, 600]
+
+# Claude editorial service (one bounded structured call per transcript window).
+# Opus 5.5 is the default; claude-haiku-5-5 is much cheaper if its picks are good enough
+# for you (update claude_pricing to match whichever model you choose).
+claude_model: claude-opus-5-5
+claude_effort: medium
+claude_max_output_tokens: 16000
+claude_pricing: {input_per_mtok: 4.00, output_per_mtok: 20.00}
+editorial_window_minutes: 20
+editorial_window_overlap_minutes: 2
+score_weights: {clarity: 1.0, context: 1.0, payoff: 1.5, distinctness: 0.75, campaign_fit: 1.25}
+
+# CPU transcription — pick by running `python -m clipper benchmark <30-min file>` on the real host
+whisper_model: small                # or base (faster, less accurate)
+whisper_compute_type: int8
+whisper_min_language_probability: 0.6
+
+# Disk policy
+min_free_disk_gb: 5
+min_free_disk_fraction: 0.20
+raw_retention_days: 7
+submission_retention_days: 120
+
+# Buffer Free plan: ~1,000 requests per channel per 30 days. Creates stop when only the reserve is left.
+buffer_requests_per_30d: 1000
+buffer_reserve_requests: 310
+# Optional Buffer post metadata, copied from Buffer's current docs and verified live, e.g.
+# buffer_platform_metadata: {instagram: {type: reel, shouldShareToFeed: true}}
+buffer_platform_metadata: {}
+
+# Meta branded-content params for native paid-partnership labels. Copy names from Meta's
+# current Instagram API docs, test live, then mark capability instagram.paid_partnership verified.
+# Use the literal "{sponsor_ids}" where the sponsor id list goes.
+instagram_paid_partnership_params: {}
+
+# Hosts that source feeds / media downloads may come from (exact host or *.domain)
+source_host_allowlist:
+  - creator-owned.example

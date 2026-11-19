@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Clips: {{ stage }}</h1>
+<p>{% for s in ['checked','ready','held','published','rejected','selected','rendered'] %}<a class="pill {{ 'ok' if s == stage }}" href="/clips?stage={{ s }}">{{ 'awaiting review' if s == 'checked' else s }}</a> {% endfor %}</p>
+{% if stage == 'checked' %}<p class="muted">The first {{ settings.calibration_review_count }} clips per opportunity and template need your review. After that, clips that pass every gate are released automatically; flagged ones still come here.</p>{% endif %}
+{% for c in clips %}
+<div class="card"><div class="row">
+ <div style="flex:0 0 230px">{% if c.render_path %}<video src="/clips/{{ c.id }}/video" controls preload="none"></video>{% endif %}</div>
+ <div>
+  <b>#{{ c.id }} · {{ c.opp_name }}</b> · source {{ c.source_id }} · {{ c.start_s|round(1) }}–{{ c.end_s|round(1) }}s ({{ (c.end_s - c.start_s)|round(1) }}s) · score {{ c.score_total }}
+  {% if c.context_risk %}<span class="pill bad">context risk</span>{% endif %}
+  <span class="pill">review: {{ c.review_state }}</span>{% if c.preapproval_state != 'not_required' %} <span class="pill">pre-approval: {{ c.preapproval_state }}</span>{% endif %}
+  {% if c.hold_reason %}<p class="warn">{{ c.hold_reason }}</p>{% endif %}
+  <p><b>Hook:</b> {{ c.hook }}<br><b>Payoff:</b> {{ c.payoff }}<br><b>Evidence:</b> “{{ c.evidence }}”</p>
+  <p class="muted">Model: {{ c.model_version }} · terms v{{ c.terms_version }} · {{ c.template_version }}</p>
+  {% set checks = c.check_results|fromjson %}{% if checks %}<p>{% for k, v in checks.items() %}<span class="pill {{ 'ok' if v.ok else 'bad' }}" title="{{ v.detail }}">{{ k }}</span> {% endfor %}</p>{% endif %}
+  {% if stage != 'published' %}
+  <form method="post" action="/clips/{{ c.id }}/review"><input type="hidden" name="csrf" value="{{ csrf }}">
+   <label>Caption (required text is appended automatically). Final caption preview:</label>
+   <textarea name="caption">{{ c.caption }}</textarea>
+   <pre class="muted" style="white-space:pre-wrap">{{ c.final_caption }}</pre>
+   <input name="note" placeholder="note (reason for rejection)">
+   <button name="decision" value="approve">Approve</button>
+   <button name="decision" value="reject" class="danger">Reject</button>
+   {% if stage == 'held' %}<button name="decision" value="recheck" class="secondary">Re-check gates</button>{% endif %}
+  </form>
+  {% if c.preapproval_state in ('pending',) %}
+  <form method="post" action="/clips/{{ c.id }}/preapproval" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+   <div><label>Campaign manager decision on this exact render</label><select name="state"><option>approved</option><option>rejected</option></select></div>
+   <div><label>Evidence (message link / id)</label><input name="evidence" required></div><div><label>&nbsp;</label><button class="secondary">Record</button></div></form>
+  {% endif %}
+  {% else %}<p class="muted">Published creative is immutable here; corrections go through an exception task.</p>{% endif %}
+ </div></div></div>
+{% else %}<div class="card muted">Nothing here.</div>{% endfor %}
+{% endblock %}

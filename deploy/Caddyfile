@@ -1,0 +1,12 @@
+# Automatic HTTPS for CLIPPER_DOMAIN (set it in the shell or a top-level .env for compose).
+{$CLIPPER_DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+		-Server
+	}
+	reverse_proxy web:8000
+}
