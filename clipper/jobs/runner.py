@@ -98,6 +98,9 @@ def scheduler_tick(ctx: Ctx) -> None:
     if _every(ctx, "publish_slots", 1):
         queue.enqueue(ctx.conn, queue="light", type="publish_slots", due_at=now, dedupe_key=f"slots:{now:%Y%m%d%H%M}",
                       max_attempts=1)
+    if ctx.tg is not None and _every(ctx, "campaign_prompts", 5):
+        queue.enqueue(ctx.conn, queue="light", type="campaign_prompts", due_at=now,
+                      dedupe_key=f"prompts:{now:%Y%m%d%H%M}", max_attempts=1)
     if _every(ctx, "housekeeping", 60):
         queue.enqueue(ctx.conn, queue="light", type="housekeeping", due_at=now, dedupe_key=f"hk:{now:%Y%m%d%H}")
     if _every(ctx, "backup", 24 * 60):

@@ -20,6 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--port", type=int, default=8000)
     sub.add_parser("scheduler", help="run the scheduler (light jobs, publishing, deadlines)")
     sub.add_parser("worker", help="run the heavy worker (download/transcribe/select/render)")
+    sub.add_parser("bot", help="run the two-way Telegram control bot")
+    sub.add_parser("telegram-chat-id", help="show the chat id of whoever messaged the bot (setup helper)")
     sub.add_parser("hash-password", help="print an OWNER_PASSWORD_HASH value")
     sub.add_parser("new-secret", help="print random SESSION_SECRET and BACKUP_KEY values")
     sub.add_parser("backup", help="write an encrypted backup now")
@@ -55,6 +57,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"SESSION_SECRET={secrets.token_urlsafe(48)}")
         print(f"BACKUP_KEY={new_key()}")
         return 0
+    if args.cmd == "telegram-chat-id":
+        import os
+
+        from clipper.telegram.api import TelegramAPI
+
+        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        if not token:
+            print("Set TELEGRAM_BOT_TOKEN in .env first (from @BotFather).", file=sys.stderr)
+            return 1
+        print("Now send any message to your bot in Telegram (waiting up to 60 s)…")
+        api = TelegramAPI(token, "0")
+        for upd in api.get_updates(None, timeout=60) or []:
+            chat = (upd.get("message") or {}).get("chat") or {}
+            if chat:
+                print(f"TELEGRAM_CHAT_ID={chat['id']}   ({chat.get('first_name') or chat.get('title') or ''})")
+                return 0
+        print("No message received. Send /start to the bot and run this again.")
+        return 1
     if args.cmd == "restore":
         from clipper.backup import restore
         from clipper.config import load_env
@@ -89,6 +109,10 @@ def main(argv: list[str] | None = None) -> int:
         from clipper.jobs.runner import worker_loop
 
         worker_loop(ctx)
+    elif args.cmd == "bot":
+        from clipper.telegram.bot import run_bot
+
+        run_bot(ctx)
     elif args.cmd == "backup":
         from clipper.backup import make_backup
 

@@ -88,6 +88,17 @@ class Settings(BaseModel):
     # Rendering
     template_version: str = "v1-vertical-1080"
 
+    # Telegram control bot
+    # Destination used for campaigns set up from Telegram (account_ref blank → INSTAGRAM_USER_ID).
+    campaign_defaults: dict = Field(default_factory=lambda: {
+        "publisher": "instagram", "platform": "instagram", "account_ref": "", "layout": {"template": "blur_pad"}})
+    telegram_prompt_window: str = "09:00-22:00"      # local hours when the bot may ask "ready to post?"
+    telegram_prompt_snooze_minutes: int = 120         # re-ask after this long if a prompt is ignored
+    telegram_review_via_bot: bool = True              # send clips needing review to Telegram
+    # Platform-wide Content Rewards creator fee for CPM campaigns, verified 2026-11-18 on
+    # contentrewards.com/pricing/creators. Used only when the campaign brief states no fee.
+    content_rewards_cpm_fee_rate: str = "0.10"
+
 
 class Env(BaseModel):
     data_dir: Path

@@ -30,6 +30,10 @@ def hold_source(ctx: Ctx, sid: int, reason: str) -> None:
     with tx(ctx.conn):
         ctx.conn.execute("UPDATE sources SET stage='held', hold_reason=?, updated_at=? WHERE id=?",
                          (reason[:500], iso(ctx.now()), sid))
+    src = row(ctx.conn, "SELECT title, provider_id FROM sources WHERE id=?", (sid,))
+    ctx.alerter.send(ctx.conn, ctx.now(), "source_held",
+                     f"Source #{sid} ({src['title'] or src['provider_id']}) is on hold: {reason[:300]}",
+                     severity="warning", dedupe_key=f"srchold:{sid}", dedupe_window=timedelta(days=1))
 
 
 def hold_clip(ctx: Ctx, cid: int, reason: str) -> None:
@@ -75,7 +79,9 @@ def acquire_source(ctx: Ctx, p: dict) -> None:
         raise TransientError("daily source-minutes budget used; continuing tomorrow", 3 * 3600)
 
     dest = ctx.env.media_dir / "sources" / f"{sid}.mp4"
-    sha, size = download(ctx.http, src["download_url"], dest, ctx.settings.source_host_allowlist,
+    from clipper.sources.links import allowlist
+
+    sha, size = download(ctx.http, src["download_url"], dest, allowlist(ctx.conn, ctx.settings.source_host_allowlist),
                          max_bytes=ctx.settings.max_source_bytes, resolve=ctx.resolve_dns)
     pr = ffmpeg.probe(dest)
     if not pr.width or pr.duration <= 0:
@@ -240,6 +246,9 @@ def try_release(ctx: Ctx, cid: int) -> list[str]:
                              ("awaiting review: " + "; ".join(reasons)[:450], iso(ctx.now()), cid))
             if op.get("requires_preapproval") and clip["preapproval_state"] == "not_required":
                 ctx.conn.execute("UPDATE clips SET preapproval_state='pending' WHERE id=?", (cid,))
+            if ctx.settings.telegram_review_via_bot and clip["review_state"] == "pending":
+                enqueue(ctx.conn, queue="light", type="tg_review_clip", payload={"clip_id": cid},
+                        due_at=ctx.now(), dedupe_key=f"tgreview:{cid}", max_attempts=3)
         else:
             ctx.conn.execute("UPDATE clips SET stage='held', hold_reason=?, updated_at=? WHERE id=?",
                              ("; ".join(reasons)[:500], iso(ctx.now()), cid))
@@ -341,7 +350,21 @@ HEAVY = {
     "select_clips": select_clips,
     "render_clip": render_clip,
 }
+def tg_review_clip(ctx: Ctx, p: dict) -> None:
+    from clipper.telegram.prompts import send_review
+
+    send_review(ctx, p)
+
+
+def campaign_prompts(ctx: Ctx, p: dict) -> None:
+    from clipper.telegram.prompts import campaign_prompts as run
+
+    run(ctx, p)
+
+
 LIGHT = {
+    "tg_review_clip": tg_review_clip,
+    "campaign_prompts": campaign_prompts,
     "poll_feeds": poll_feeds,
     "publish_slots": publish_slots,
     "publication_status": publication_status,

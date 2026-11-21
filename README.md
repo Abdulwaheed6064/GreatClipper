@@ -31,6 +31,7 @@ authorized feed / manual link ─► download (allowlist, size cap, hash)
 | `clipper/budget` | spend reservations against the monthly ceiling |
 | `clipper/jobs` | durable SQLite job queue, scheduler + heavy worker |
 | `clipper/web` | authenticated dashboard (server-rendered, CSRF) |
+| `clipper/telegram` | two-way owner bot: campaign intake, clip review, post prompts, submissions |
 
 ## Quick start (your PC, dry run)
 
@@ -75,6 +76,10 @@ python -m clipper web & python -m clipper scheduler & python -m clipper worker
 
 Operating details (daily routine, campaign sessions, backups, restore, troubleshooting): [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
+## Telegram control bot
+
+Day to day you can run everything from Telegram: send a campaign link and its rules, approve the proposed settings, send video links, approve the first clips, tap "post now", and confirm each submission. Setup and commands: [docs/TELEGRAM.md](docs/TELEGRAM.md).
+
 ## Tests
 
 ```bash
@@ -82,7 +87,7 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-36 tests cover the section-14 acceptance list with mocked Buffer/Claude/Telegram and a real FFmpeg render: feed de-duplication, rights/terms gating, malformed model output, changed layout, budget stop, ambiguous-send reconciliation (no duplicate), restart recovery, deadline from actual publish time, reminders/overdue, readiness expiry, credential failure isolation, idempotent imports, currency separation, backup/restore, auth/CSRF.
+45 tests cover the section-14 acceptance list and the Telegram bot flows with mocked Buffer/Claude/Telegram and a real FFmpeg render: feed de-duplication, rights/terms gating, malformed model output, changed layout, budget stop, ambiguous-send reconciliation (no duplicate), restart recovery, deadline from actual publish time, reminders/overdue, readiness expiry, credential failure isolation, idempotent imports, currency separation, backup/restore, auth/CSRF.
 
 ## Design decisions & assumptions
 

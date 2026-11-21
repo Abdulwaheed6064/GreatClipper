@@ -17,28 +17,25 @@ from clipper.db import iso, row, tx
 
 
 class AlertTransport(Protocol):
-    def send(self, text: str) -> None: ...
+    def send(self, text: str, buttons: list | None = None) -> None: ...
 
 
 class TelegramTransport:
-    def __init__(self, bot_token: str, chat_id: str, client: httpx.Client | None = None):
-        self.url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        self.chat_id = chat_id
-        self.client = client or httpx.Client(timeout=15)
+    """Alerts go through the same bot the owner talks to; buttons are optional."""
 
-    def send(self, text: str) -> None:
-        r = self.client.post(
-            self.url,
-            json={"chat_id": self.chat_id, "text": text[:4000], "disable_web_page_preview": True},
-        )
-        if r.status_code != 200 or not r.json().get("ok"):
-            raise RuntimeError(f"telegram delivery failed: HTTP {r.status_code} {r.text[:200]}")
+    def __init__(self, bot_token: str, chat_id: str, client: httpx.Client | None = None):
+        from clipper.telegram.api import TelegramAPI
+
+        self.api = TelegramAPI(bot_token, chat_id, client)
+
+    def send(self, text: str, buttons: list | None = None) -> None:
+        self.api.send_message(text, buttons)
 
 
 class NullTransport:
     """Used when Telegram is not configured: every send fails loudly."""
 
-    def send(self, text: str) -> None:
+    def send(self, text: str, buttons: list | None = None) -> None:
         raise RuntimeError("no alert channel configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)")
 
 
@@ -56,6 +53,7 @@ class Alerter:
         severity: str = "info",
         dedupe_key: str | None = None,
         dedupe_window: timedelta = timedelta(hours=1),
+        buttons: list | None = None,
     ) -> bool:
         if dedupe_key:
             recent = row(
@@ -68,7 +66,11 @@ class Alerter:
         prefix = {"critical": "🚨 ", "warning": "⚠️ "}.get(severity, "")
         error = None
         try:
-            self.transport.send(f"{prefix}[GreatClipper] {message}")
+            text = f"{prefix}[GreatClipper] {message}"
+            if buttons:
+                self.transport.send(text, buttons)
+            else:
+                self.transport.send(text)
             delivered = 1
         except Exception as exc:  # delivery failure must never crash the caller
             delivered, error = 0, str(exc)[:500]

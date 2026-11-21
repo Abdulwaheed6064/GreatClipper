@@ -60,6 +60,19 @@ buffer_platform_metadata: {}
 # Use the literal "{sponsor_ids}" where the sponsor id list goes.
 instagram_paid_partnership_params: {}
 
-# Hosts that source feeds / media downloads may come from (exact host or *.domain)
+# Telegram control bot
+# Where campaigns added from Telegram post to. account_ref blank = INSTAGRAM_USER_ID from .env.
+campaign_defaults:
+  publisher: instagram          # instagram (supports paid-partnership label once verified) or buffer
+  platform: instagram
+  account_ref: ""
+  layout: {template: blur_pad}
+telegram_prompt_window: "09:00-22:00"   # local hours the bot may ask "ready to post?"
+telegram_prompt_snooze_minutes: 120
+telegram_review_via_bot: true           # clips needing review arrive as videos in Telegram
+content_rewards_cpm_fee_rate: "0.10"    # platform CPM fee, used only when a brief states none
+
+# Hosts that source feeds / media downloads may come from (exact host or *.domain).
+# Hosts you approve in Telegram (e.g. Google Drive) are added automatically.
 source_host_allowlist:
   - creator-owned.example

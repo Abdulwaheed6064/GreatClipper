@@ -13,7 +13,8 @@ import httpx
 from clipper.jobs.queue import HoldError, PermanentError, TransientError
 
 MAX_REDIRECTS = 5
-ALLOWED_MEDIA_TYPES = ("video/", "application/octet-stream", "binary/octet-stream")
+ALLOWED_MEDIA_TYPES = ("video/", "application/octet-stream", "binary/octet-stream", "application/binary",
+                       "application/x-download", "application/force-download")
 
 
 def host_allowed(host: str, allowlist: list[str]) -> bool:
@@ -124,6 +125,9 @@ def download(client: httpx.Client, url: str, dest: Path, allowlist: list[str], *
         _raise_for(resp)
         ctype = resp.headers.get("content-type", "").split(";")[0].strip().lower()
         if ctype and not ctype.startswith(ALLOWED_MEDIA_TYPES):
+            if ctype == "text/html":
+                raise PermanentError("the link returned a web page, not the video file (check it is shared as "
+                                     "'anyone with the link', or send a direct download link)")
             raise PermanentError(f"unexpected content-type {ctype!r}")
         declared = resp.headers.get("content-length")
         if declared and declared.isdigit() and int(declared) > max_bytes:

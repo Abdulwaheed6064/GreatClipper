@@ -34,12 +34,50 @@ class Clock:
 class RecordingTransport:
     def __init__(self):
         self.sent: list[str] = []
+        self.buttons: list = []
         self.fail = False
 
-    def send(self, text: str) -> None:
+    def send(self, text: str, buttons: list | None = None) -> None:
         if self.fail:
             raise RuntimeError("telegram down")
         self.sent.append(text)
+        self.buttons.append(buttons)
+
+
+class FakeTelegramAPI:
+    """Stands in for clipper.telegram.api.TelegramAPI."""
+
+    def __init__(self, chat_id: str = "42"):
+        self.chat_id = chat_id
+        self.messages: list[tuple[str, list | None]] = []
+        self.videos: list[tuple[str, str, list | None]] = []
+        self.cleared: list[int] = []
+
+    def send_message(self, text, buttons=None, chat_id=None):
+        self.messages.append((text, buttons))
+        return {"message_id": len(self.messages)}
+
+    def send_video(self, path, caption, buttons=None):
+        self.videos.append((str(path), caption, buttons))
+        return {"message_id": 1000 + len(self.videos)}
+
+    def answer_callback(self, cid, text=""):
+        pass
+
+    def clear_buttons(self, message_id):
+        self.cleared.append(message_id)
+
+    def download_file(self, file_id, dest):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(b"\xff\xd8\xff fake image " + file_id.encode())
+        return dest
+
+    def set_commands(self, commands):
+        pass
+
+    @property
+    def last(self) -> str:
+        return self.messages[-1][0] if self.messages else ""
 
 
 class FakeTranscriber:
@@ -165,8 +203,8 @@ def ctx(tmp_path, clock, sample_video):
     env = Env(
         data_dir=tmp_path / "data", config_path=tmp_path / "config.yaml", public_base_url="https://clips.example.com",
         anthropic_api_key=None, buffer_api_key="buf-key", buffer_api_url="https://api.buffer.com",
-        buffer_organization_id="org1", instagram_access_token=None, instagram_user_id=None,
-        instagram_graph_version="v23.0", telegram_bot_token=None, telegram_chat_id=None,
+        buffer_organization_id="org1", instagram_access_token=None, instagram_user_id="1784000",
+        instagram_graph_version="v23.0", telegram_bot_token=None, telegram_chat_id="42",
         owner_password_hash=None, session_secret="test-secret", backup_key=None, cookie_secure=False,
     )
     ensure_dirs(env)
@@ -190,6 +228,7 @@ def ctx(tmp_path, clock, sample_video):
     c = Ctx(settings=settings, env=env, conn=conn, alerter=Alerter(transport), http=http, clock=clock,
             resolve_dns=False)
     c.publishers = build_publishers(c)
+    c.tg = FakeTelegramAPI()
     c.editor = Editor(FakeAnthropic([]), settings)
     c.transcriber = FakeTranscriber()
     c.alerts = transport          # test handles

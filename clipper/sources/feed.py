@@ -16,6 +16,7 @@ from clipper.context import Ctx
 from clipper.db import audit, iso, tx
 from clipper.jobs.queue import PermanentError, enqueue
 from clipper.rules.gates import source_gate
+from clipper.sources.links import allowlist
 from clipper.sources.safe_http import fetch_json, validate_url
 
 
@@ -26,7 +27,7 @@ def _insert_source(ctx: Ctx, op: dict, item: dict, mode: str, now: datetime) -> 
         return None
     hold_reason = None
     try:
-        validate_url(url, ctx.settings.source_host_allowlist, resolve=False)
+        validate_url(url, allowlist(ctx.conn, ctx.settings.source_host_allowlist), resolve=False)
     except Exception as exc:  # recorded as a held source so the owner can see it
         hold_reason = f"download URL refused: {exc}"
     if not item.get("rights_ref"):
@@ -56,7 +57,8 @@ def poll_feed(ctx: Ctx, opp_id: str) -> list[int]:
     reasons = source_gate(op, now)
     if reasons:
         return []
-    data = fetch_json(ctx.http, op["feed_url"], ctx.settings.source_host_allowlist, resolve=ctx.resolve_dns)
+    data = fetch_json(ctx.http, op["feed_url"], allowlist(ctx.conn, ctx.settings.source_host_allowlist),
+                      resolve=ctx.resolve_dns)
     videos = data.get("videos") if isinstance(data, dict) else None
     if not isinstance(videos, list):
         raise PermanentError("feed JSON must contain a 'videos' list")

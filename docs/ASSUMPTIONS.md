@@ -23,6 +23,15 @@ Built from the *Four-Day MVP Implementation Plan* (18 Nov 2026) and the *Due Dil
 10. **Money**: stored as integer cents with a currency. No FX conversion is built, so currencies are reported separately. Shared fixed costs show as "(shared)".
 11. **Unknown ≠ zero**: blank imported views and missing payment fields stay unknown. The CPM estimator then shows a range or withholds the estimate.
 
+## Telegram bot assumptions
+
+12. **The bot never logs into Content Rewards.** It reads only the public campaign page and whatever you paste or send. You join campaigns and submit links yourself.
+13. **Tapping ✅ Approve on a proposal confirms the terms.** The message lists every value that controls posting. Missing payout model, disclosure, destination account or campaign link blocks the Approve button until you answer.
+14. **Platform fee:** for Content Rewards CPM campaigns whose brief states no fee, the standard 10% creator fee (verified 18 Nov 2026) is applied and labelled as such. Missing currency on Content Rewards is assumed USD, with a visible note. Missing lengths default to 15–60 s, also noted.
+15. **"✅ Checked — post now" counts as a fresh budget check.** It means you confirm the budget shown last time is still roughly right; use **💲 Budget changed** otherwise.
+16. **Source links:** Google Drive file links and Dropbox links are converted to direct downloads. YouTube, TikTok, Instagram, Twitch, Kick, X and Facebook links are refused. The first link from a new site needs your explicit "Allow".
+17. Campaigns from Telegram post to `campaign_defaults` (Instagram, using `INSTAGRAM_USER_ID`).
+
 ## Not verified while building (do this on Day 1)
 
 | Item | Why | What to do |
@@ -33,6 +42,9 @@ Built from the *Four-Day MVP Implementation Plan* (18 Nov 2026) and the *Due Dil
 | **Instagram Graph API version** | Changes over time | Set `INSTAGRAM_GRAPH_VERSION` to the current version |
 | **faster-whisper speed/RAM on your VPS** | Tests use a fake transcriber; no model download here | Run `python -m clipper benchmark` on the real host |
 | **Docker image build** | The build sandbox could not reach Debian package mirrors. `docker compose config` validates, and the app and tests run on Python 3.13 with FFmpeg 6.1. | Run `docker compose build` on your machine |
+| **Telegram Bot API live behaviour** | Tests use a fake Telegram API | Send `/start`; try one campaign intake |
+| **Content Rewards public page text** | Pages may be rendered by JavaScript, so fetching may return little | Pasting the rules or sending screenshots always works |
+| **Google Drive direct download of large files** | Drive sometimes shows a confirmation page | If a source is held with "returned a web page", use Dropbox or a direct link |
 | **Claude live call** | No API key in the build environment; the request shape follows the current SDK (`anthropic==2.10.0`) and is checked by tests | Watch the first real selection in the Jobs page and Spend panel |
 
 ## Deliberately not built (deferred by the plan)

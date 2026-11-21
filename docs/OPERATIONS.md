@@ -7,6 +7,7 @@
 | `web` | `python -m clipper web` | Dashboard + public `/m/<token>.mp4` clip URLs |
 | `scheduler` | `python -m clipper scheduler` | Exactly one. Feed polling (30 min), publish slots, status checks, deadline reminders, hourly housekeeping, daily backup. Reconciles outstanding publications on start before anything new. |
 | `worker` | `python -m clipper worker` | Heavy jobs one at a time: download → transcribe → Claude selection → render → checks |
+| `bot` | `python -m clipper bot` | Telegram control bot (owner chat only); see docs/TELEGRAM.md |
 | `caddy` | — | HTTPS in front of `web` |
 
 State lives in `data/` (SQLite in WAL mode, media, backups, Whisper model cache). Never copy `data/clipper.db` while running; use `python -m clipper backup`.

@@ -18,6 +18,12 @@ from clipper.jobs.queue import enqueue
 DEFAULT_DEADLINE_MINUTES = 30
 
 
+def _buttons(sub: dict) -> list:
+    from clipper.telegram.prompts import submission_buttons
+
+    return submission_buttons(sub)
+
+
 def open_submission(ctx: Ctx, pub_id: int) -> dict:
     conn, st, now = ctx.conn, ctx.settings, ctx.now()
     pub = row(conn, "SELECT * FROM publications WHERE id=?", (pub_id,))
@@ -50,8 +56,8 @@ def open_submission(ctx: Ctx, pub_id: int) -> dict:
         conn, now, "submission_required",
         f"{dry}MANUAL STEP REQUIRED: submit {pub['live_url']} on {op.get('campaign_url') or op['name']} "
         f"within {left:.0f} min (deadline {deadline.strftime('%H:%M:%S')} UTC{est}). "
-        f"Then record the receipt on the dashboard.",
-        severity="critical",
+        f"Then tap ✅ I submitted it and send the confirmation.",
+        severity="critical", buttons=_buttons(sub),
     )
     return sub
 
@@ -76,7 +82,7 @@ def reminder(ctx: Ctx, sub_id: int, kind: str) -> None:
     ctx.alerter.send(conn, now, "submission_reminder",
                      f"{label}: submission #{sub_id} still unconfirmed — {left:.0f} min left. "
                      f"URL: {sub['live_url']}  Campaign: {sub['campaign_url']}", severity=sev,
-                     dedupe_key=f"subrem:{sub_id}:{kind}")
+                     dedupe_key=f"subrem:{sub_id}:{kind}", buttons=_buttons(sub))
 
 
 def record_submitted(ctx: Ctx, sub_id: int, receipt: str, *, actor: str = "owner") -> dict:

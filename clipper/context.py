@@ -23,6 +23,7 @@ class Ctx:
     publishers: dict[str, Any] = field(default_factory=dict)
     editor: Any = None          # clipper.editorial.claude.Editor
     transcriber: Any = None     # clipper.transcription.whisper.Transcriber
+    tg: Any = None              # clipper.telegram.api.TelegramAPI when configured
     clock: Callable[[], datetime] = utcnow
     resolve_dns: bool = True
 
@@ -45,7 +46,8 @@ def build_ctx(*, settings: Settings | None = None, env: Env | None = None) -> Ct
     else:
         transport = NullTransport()
     http = httpx.Client(timeout=httpx.Timeout(60, connect=15), headers={"User-Agent": "GreatClipper/1.0"})
-    ctx = Ctx(settings=settings, env=env, conn=conn, alerter=Alerter(transport), http=http)
+    ctx = Ctx(settings=settings, env=env, conn=conn, alerter=Alerter(transport), http=http,
+              tg=getattr(transport, "api", None))
     ctx.publishers = build_publishers(ctx)
     ctx.editor = Editor.from_env(env, settings)
     ctx.transcriber = WhisperTranscriber(settings.whisper_model, settings.whisper_compute_type)

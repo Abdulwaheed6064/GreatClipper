@@ -28,6 +28,11 @@ services:
     command: ["scheduler"]
     depends_on: [web]
 
+  bot:
+    <<: *app
+    command: ["bot"]
+    depends_on: [web]
+
   worker:
     <<: *app
     command: ["worker"]
